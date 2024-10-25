@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: argocd-repo-server-share
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 128Mi

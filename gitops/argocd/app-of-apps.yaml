@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: master-app-of-apps
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: argocd
+  sources:
+    - repoURL: file:///shares/repo/app-of-apps
+      path: applications
+      targetRevision: HEAD
+      directory:
+        recurse: true

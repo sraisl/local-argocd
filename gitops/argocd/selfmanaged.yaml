@@ -1,0 +1,76 @@
+# Manages ArgoCD itself, has to be bootstrapped manually once - `make argo_selfmanaged`
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-selfmanaged
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: argocd
+  source:
+      chart: argo-cd
+      repoURL: 'https://argoproj.github.io/argo-helm'
+      targetRevision: 7.3.3
+      helm:
+        releaseName: argocd
+        values: |
+          global:
+            addPrometheusAnnotations: true
+          
+          configs:
+          
+            cm:
+              application.resourceTrackingMethod: annotation
+              timeout.reconciliation: 15s
+              exec.enabled: "true"
+              url: "argocd.localhost"
+          
+              accounts.user: login, apiKey
+          
+          
+            params:
+              server.insecure: "true"
+            rbac:
+              policy.csv: |
+                  g, user, role:readexecute
+                  p, role:readexecute, applications, get, */*, allow
+                  p, role:readexecute, applications, sync, */*, allow
+                  p, role:admin, exec, create, */*, allow
+        
+          repoServer:
+            volumeMounts:
+              - mountPath: /shares/repo
+                name: repo
+            volumes:
+              - name: repo
+                persistentVolumeClaim:
+                  claimName: argocd-repo-server-share
+        
+            repositories:
+              kube-prometheus-helm-repo:
+                name: kube-prometheus Helm Repo
+                url: https://prometheus-community.github.io/helm-charts
+                type: helm
+              bitnami-helm-repo:
+                name: bitnami Helm Repo
+                url: registry-1.docker.io/bitnamicharts/
+                type: helm
+                enableOCI: "true"
+          
+            notifications:
+              # -- Argo CD dashboard url; used in place of {{.context.argocdUrl}} in templates
+              argocdUrl: "http://argocd.localhost"
+              # -- Resource limits and requests for the notifications controller
+              resources: { }
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+
+              metrics:
+                enabled: true
